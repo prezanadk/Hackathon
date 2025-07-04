@@ -1,5 +1,5 @@
 // Configuration
-const GEMINI_API_KEY = "AIzaSyCgCklmUb6xUCS8Jcf-NX0IVodZ-Aq6bb4" // Replace with your actual API key
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE" // Replace with your actual API key
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
 
 // Global variables
@@ -234,17 +234,22 @@ function getFallbackQuestion(type, number) {
 
 async function evaluateAnswer(question, userAnswer) {
   const prompt = `
-    Evaluate this interview answer:
+    Evaluate this interview answer with detailed scoring:
     Question: "${question}"
     Answer: "${userAnswer}"
     
     Provide feedback in this exact JSON format:
     {
-        "fluencyScore": [0-100],
-        "answerScore": [0-100],
-        "fluencyFeedback": "specific feedback about grammar, pronunciation, and fluency",
-        "answerFeedback": "specific feedback about content quality and relevance"
+        "fluencyScore": [1-10 integer score],
+        "answerRelevanceScore": [1-10 integer score],
+        "fluencyFeedback": "specific detailed feedback about grammar, pronunciation, speaking pace, and language fluency (2-3 sentences)",
+        "answerRelevanceFeedback": "specific detailed feedback about how well the answer addresses the question, content quality, structure, and completeness (2-3 sentences)",
+        "overallFeedback": "brief overall assessment of this specific answer (1-2 sentences)"
     }
+    
+    Scoring Guidelines:
+    - Fluency (1-10): Grammar, pronunciation, speaking flow, vocabulary usage
+    - Answer Relevance (1-10): How well the answer addresses the question, completeness, structure, examples
     
     Return only the JSON, no additional text.
     `
@@ -274,10 +279,12 @@ async function evaluateAnswer(question, userAnswer) {
   } catch (error) {
     console.error("Error evaluating answer:", error)
     return {
-      fluencyScore: 75,
-      answerScore: 75,
-      fluencyFeedback: "Good overall fluency with room for improvement.",
-      answerFeedback: "Relevant answer with good content structure.",
+      fluencyScore: 6,
+      answerRelevanceScore: 6,
+      fluencyFeedback: "Good overall fluency with room for improvement in pronunciation and grammar.",
+      answerRelevanceFeedback:
+        "The answer addresses the question adequately but could benefit from more specific examples and better structure.",
+      overallFeedback: "A solid response with potential for enhancement in both delivery and content.",
     }
   }
 }
@@ -356,12 +363,17 @@ async function handleUserAnswer(transcript) {
   const currentQuestion = questions[currentQuestionIndex]
   const evaluation = await evaluateAnswer(currentQuestion, transcript)
 
+  // Get emotion score for this specific answer
+  const emotionScore = getEmotionScoreForAnswer(currentEmotion)
+
   userAnswers.push({
     question: currentQuestion,
     answer: transcript,
     evaluation: evaluation,
     emotion: currentEmotion,
+    emotionScore: emotionScore,
     timestamp: new Date().toISOString(),
+    questionNumber: currentQuestionIndex + 1,
   })
 
   currentQuestionIndex++
@@ -376,6 +388,18 @@ async function handleUserAnswer(transcript) {
   }
 
   showLoading(false)
+}
+
+// Add function to convert emotion to numerical score
+function getEmotionScoreForAnswer(emotion) {
+  const emotionScores = {
+    confident: 9,
+    focused: 8,
+    neutral: 6,
+    nervous: 4,
+    anxious: 2,
+  }
+  return emotionScores[emotion] || 6
 }
 
 async function skipQuestion() {
@@ -400,126 +424,299 @@ function initializeResults() {
   displayResults(results)
 }
 
+// Update displayResults function for detailed per-question feedback
 function displayResults(results) {
   // Calculate overall scores
   const fluencyScores = results.answers.map((a) => a.evaluation.fluencyScore)
-  const answerScores = results.answers.map((a) => a.evaluation.answerScore)
-  const emotionScores = calculateEmotionScore(results.answers)
+  const answerScores = results.answers.map((a) => a.evaluation.answerRelevanceScore)
+  const emotionScores = results.answers.map((a) => a.emotionScore)
 
-  const avgFluency = fluencyScores.reduce((a, b) => a + b, 0) / fluencyScores.length
-  const avgAnswer = answerScores.reduce((a, b) => a + b, 0) / answerScores.length
-  const avgEmotion = emotionScores
+  const avgFluency = Math.round((fluencyScores.reduce((a, b) => a + b, 0) / fluencyScores.length) * 10) / 10
+  const avgAnswerRelevance = Math.round((answerScores.reduce((a, b) => a + b, 0) / answerScores.length) * 10) / 10
+  const avgEmotion = Math.round((emotionScores.reduce((a, b) => a + b, 0) / emotionScores.length) * 10) / 10
 
-  const overallScore = Math.round((avgFluency + avgAnswer + avgEmotion) / 3)
+  const overallScore = Math.round(((avgFluency + avgAnswerRelevance + avgEmotion) / 3) * 10) / 10
 
   // Display overall score
-  document.getElementById("overallScore").textContent = `${overallScore}%`
+  document.getElementById("overallScore").textContent = `${overallScore}/10`
 
-  // Display detailed feedback
-  displayDetailedFeedback(avgEmotion, avgFluency, avgAnswer, results.answers)
+  // Display per-question feedback
+  displayPerQuestionFeedback(results.answers)
+
+  // Display final summary
+  displayFinalSummary(avgFluency, avgAnswerRelevance, avgEmotion, overallScore, results.answers)
 }
 
-function calculateEmotionScore(answers) {
-  const emotionWeights = {
-    confident: 100,
-    focused: 90,
-    neutral: 75,
-    nervous: 50,
-    anxious: 30,
-  }
+// Add function to display per-question feedback
+function displayPerQuestionFeedback(answers) {
+  const perQuestionContainer = document.getElementById("perQuestionFeedback")
 
-  const emotions = answers.map((a) => a.emotion)
-  const avgScore = emotions.reduce((sum, emotion) => sum + (emotionWeights[emotion] || 75), 0) / emotions.length
-  return Math.round(avgScore)
-}
+  let html = '<h2>📝 Per Question Analysis</h2><div class="questions-grid">'
 
-function displayDetailedFeedback(emotionScore, fluencyScore, answerScore, answers) {
-  // Body Language Feedback
-  const bodyLanguageFeedback = document.getElementById("bodyLanguageFeedback")
-  bodyLanguageFeedback.innerHTML = `
-        <div class="feedback-header">
-            <div class="feedback-icon">😊</div>
-            <div>
-                <div class="feedback-title">Body Language & Confidence</div>
-                <div class="feedback-score">${emotionScore}%</div>
+  answers.forEach((answer, index) => {
+    const emotionEmoji = {
+      confident: "😊",
+      focused: "🤔",
+      neutral: "😐",
+      nervous: "😰",
+      anxious: "😟",
+    }
+
+    html += `
+      <div class="question-feedback-card">
+        <div class="question-header">
+          <h3>Question ${answer.questionNumber}</h3>
+          <div class="question-scores">
+            <span class="score-badge fluency">Fluency: ${answer.evaluation.fluencyScore}/10</span>
+            <span class="score-badge relevance">Relevance: ${answer.evaluation.answerRelevanceScore}/10</span>
+            <span class="score-badge emotion">Emotion: ${answer.emotionScore}/10 ${emotionEmoji[answer.emotion] || "😐"}</span>
+          </div>
+        </div>
+        
+        <div class="question-content">
+          <div class="question-text">
+            <strong>Q:</strong> ${answer.question}
+          </div>
+          
+          <div class="feedback-sections">
+            <div class="feedback-section">
+              <h4>🗣️ Fluency Feedback</h4>
+              <p>${answer.evaluation.fluencyFeedback}</p>
             </div>
-        </div>
-        <div class="feedback-content">
-            ${getEmotionFeedback(emotionScore, answers)}
-        </div>
-    `
-
-  // Fluency Feedback
-  const fluencyFeedback = document.getElementById("fluencyFeedback")
-  fluencyFeedback.innerHTML = `
-        <div class="feedback-header">
-            <div class="feedback-icon">🗣️</div>
-            <div>
-                <div class="feedback-title">Fluency & Grammar</div>
-                <div class="feedback-score">${Math.round(fluencyScore)}%</div>
+            
+            <div class="feedback-section">
+              <h4>💡 Answer Relevance Feedback</h4>
+              <p>${answer.evaluation.answerRelevanceFeedback}</p>
             </div>
-        </div>
-        <div class="feedback-content">
-            ${getFluencyFeedback(fluencyScore, answers)}
-        </div>
-    `
-
-  // Answer Quality Feedback
-  const answerQualityFeedback = document.getElementById("answerQualityFeedback")
-  answerQualityFeedback.innerHTML = `
-        <div class="feedback-header">
-            <div class="feedback-icon">💡</div>
-            <div>
-                <div class="feedback-title">Answer Quality</div>
-                <div class="feedback-score">${Math.round(answerScore)}%</div>
+            
+            <div class="feedback-section">
+              <h4>😊 Emotional Appearance</h4>
+              <p>You appeared ${answer.emotion} during this response. ${getEmotionDetailedFeedback(answer.emotion, answer.emotionScore)}</p>
             </div>
+            
+            <div class="overall-question-feedback">
+              <strong>Overall:</strong> ${answer.evaluation.overallFeedback}
+            </div>
+          </div>
         </div>
-        <div class="feedback-content">
-            ${getAnswerFeedback(answerScore, answers)}
-        </div>
+      </div>
     `
+  })
+
+  html += "</div>"
+  perQuestionContainer.innerHTML = html
 }
 
-function getEmotionFeedback(score, answers) {
-  const dominantEmotions = answers.map((a) => a.emotion)
-  const emotionCounts = dominantEmotions.reduce((acc, emotion) => {
-    acc[emotion] = (acc[emotion] || 0) + 1
-    return acc
-  }, {})
-
-  const mostCommonEmotion = Object.keys(emotionCounts).reduce((a, b) => (emotionCounts[a] > emotionCounts[b] ? a : b))
-
-  if (score >= 80) {
-    return `Excellent confidence and body language! You maintained a ${mostCommonEmotion} demeanor throughout most of the interview, which shows great composure and self-assurance.`
-  } else if (score >= 60) {
-    return `Good overall presence with some nervousness detected. You showed ${mostCommonEmotion} behavior most of the time. Try to maintain eye contact and practice relaxation techniques.`
-  } else {
-    return `There's room for improvement in confidence and body language. You appeared ${mostCommonEmotion} during most responses. Practice in front of a mirror and work on maintaining calm, confident posture.`
+// Add function for detailed emotion feedback per question
+function getEmotionDetailedFeedback(emotion, score) {
+  const feedbackMap = {
+    confident:
+      score >= 8
+        ? "Excellent confidence level that enhances your credibility."
+        : "Good confidence, maintain this positive energy.",
+    focused:
+      score >= 7
+        ? "Great focus and attention, showing strong engagement."
+        : "Good focus, try to maintain this throughout.",
+    neutral:
+      score >= 6
+        ? "Neutral expression is professional, consider showing more engagement."
+        : "Try to show more enthusiasm and engagement.",
+    nervous:
+      score >= 4
+        ? "Some nervousness is normal, practice relaxation techniques."
+        : "High nervousness detected, work on confidence-building exercises.",
+    anxious:
+      score >= 3
+        ? "Anxiety is affecting your performance, practice stress management."
+        : "Significant anxiety detected, consider preparation and breathing exercises.",
   }
+
+  return feedbackMap[emotion] || "Maintain a calm and confident demeanor."
 }
 
-function getFluencyFeedback(score, answers) {
-  const fluencyIssues = answers.filter((a) => a.evaluation.fluencyScore < 70)
+// Add function to display final summary
+function displayFinalSummary(avgFluency, avgAnswerRelevance, avgEmotion, overallScore, answers) {
+  const finalSummaryContainer = document.getElementById("finalSummary")
 
-  if (score >= 80) {
-    return "Excellent fluency and grammar! Your speech was clear, well-paced, and grammatically correct throughout the interview."
-  } else if (score >= 60) {
-    return `Good fluency with minor issues. ${fluencyIssues.length} responses had some grammar or pronunciation concerns. Focus on speaking more slowly and clearly.`
-  } else {
-    return `Fluency needs improvement. Consider practicing pronunciation, working on grammar basics, and speaking more slowly to improve clarity.`
-  }
+  // Generate comprehensive final review
+  const finalReview = generateFinalReview(avgFluency, avgAnswerRelevance, avgEmotion, answers)
+
+  const html = `
+    <div class="final-summary-card">
+      <h2>🎯 Final Performance Summary</h2>
+      
+      <div class="final-scores">
+        <div class="final-score-item">
+          <div class="score-circle-small fluency-color">
+            <span>${avgFluency}/10</span>
+          </div>
+          <div class="score-label">
+            <h3>Fluency</h3>
+            <p>${getFluencyLevel(avgFluency)}</p>
+          </div>
+        </div>
+        
+        <div class="final-score-item">
+          <div class="score-circle-small relevance-color">
+            <span>${avgAnswerRelevance}/10</span>
+          </div>
+          <div class="score-label">
+            <h3>Answer Relevance</h3>
+            <p>${getRelevanceLevel(avgAnswerRelevance)}</p>
+          </div>
+        </div>
+        
+        <div class="final-score-item">
+          <div class="score-circle-small emotion-color">
+            <span>${avgEmotion}/10</span>
+          </div>
+          <div class="score-label">
+            <h3>Emotional Appearance</h3>
+            <p>${getEmotionLevel(avgEmotion)}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="overall-score-large">
+        <h2>Overall Score: ${overallScore}/10</h2>
+        <p class="performance-level">${getOverallPerformanceLevel(overallScore)}</p>
+      </div>
+      
+      <div class="final-review">
+        <h3>📋 Comprehensive Review</h3>
+        <div class="review-content">
+          ${finalReview}
+        </div>
+      </div>
+      
+      <div class="improvement-recommendations">
+        <h3>🚀 Key Recommendations</h3>
+        <div class="recommendations-list">
+          ${generateRecommendations(avgFluency, avgAnswerRelevance, avgEmotion)}
+        </div>
+      </div>
+    </div>
+  `
+
+  finalSummaryContainer.innerHTML = html
 }
 
-function getAnswerFeedback(score, answers) {
-  const weakAnswers = answers.filter((a) => a.evaluation.answerScore < 70)
+// Helper functions for performance levels
+function getFluencyLevel(score) {
+  if (score >= 8.5) return "Excellent"
+  if (score >= 7) return "Very Good"
+  if (score >= 5.5) return "Good"
+  if (score >= 4) return "Fair"
+  return "Needs Improvement"
+}
 
-  if (score >= 80) {
-    return "Outstanding answer quality! Your responses were relevant, well-structured, and provided good examples and details."
-  } else if (score >= 60) {
-    return `Good answers overall with room for improvement. ${weakAnswers.length} responses could have been more detailed or better structured. Practice the STAR method for behavioral questions.`
+function getRelevanceLevel(score) {
+  if (score >= 8.5) return "Highly Relevant"
+  if (score >= 7) return "Very Relevant"
+  if (score >= 5.5) return "Relevant"
+  if (score >= 4) return "Somewhat Relevant"
+  return "Needs Focus"
+}
+
+function getEmotionLevel(score) {
+  if (score >= 8) return "Very Confident"
+  if (score >= 6.5) return "Confident"
+  if (score >= 5) return "Neutral"
+  if (score >= 3.5) return "Nervous"
+  return "Very Nervous"
+}
+
+function getOverallPerformanceLevel(score) {
+  if (score >= 8.5) return "Outstanding Performance"
+  if (score >= 7.5) return "Excellent Performance"
+  if (score >= 6.5) return "Very Good Performance"
+  if (score >= 5.5) return "Good Performance"
+  if (score >= 4.5) return "Fair Performance"
+  return "Needs Significant Improvement"
+}
+
+// Generate comprehensive final review
+function generateFinalReview(avgFluency, avgAnswerRelevance, avgEmotion, answers) {
+  let review = ""
+
+  // Fluency analysis
+  if (avgFluency >= 7.5) {
+    review +=
+      "Your fluency and language skills are impressive. You demonstrated excellent grammar, clear pronunciation, and natural speaking flow throughout the interview. "
+  } else if (avgFluency >= 5.5) {
+    review +=
+      "Your fluency shows good potential with some areas for improvement. Focus on grammar accuracy and speaking pace to enhance your communication effectiveness. "
   } else {
-    return "Answer quality needs significant improvement. Focus on providing more specific examples, structuring your responses better, and directly addressing the questions asked."
+    review +=
+      "Your fluency needs attention. Consider practicing pronunciation, grammar fundamentals, and speaking more slowly for better clarity. "
   }
+
+  // Answer relevance analysis
+  if (avgAnswerRelevance >= 7.5) {
+    review +=
+      "Your answers were highly relevant and well-structured. You consistently addressed the questions directly with appropriate examples and details. "
+  } else if (avgAnswerRelevance >= 5.5) {
+    review +=
+      "Your answers generally addressed the questions well, though some could benefit from more specific examples and better organization. "
+  } else {
+    review +=
+      "Your answers need more focus on directly addressing the questions asked. Practice structuring responses with clear examples and relevant details. "
+  }
+
+  // Emotional appearance analysis
+  if (avgEmotion >= 7) {
+    review +=
+      "Your emotional presence was confident and professional throughout the interview. You maintained good composure and showed appropriate engagement. "
+  } else if (avgEmotion >= 5) {
+    review +=
+      "Your emotional appearance was generally appropriate, though showing more confidence and enthusiasm could enhance your overall presentation. "
+  } else {
+    review +=
+      "Your emotional state showed signs of nervousness that may have impacted your performance. Practice relaxation techniques and build confidence through preparation. "
+  }
+
+  // Overall assessment
+  const overallScore = (avgFluency + avgAnswerRelevance + avgEmotion) / 3
+  if (overallScore >= 7.5) {
+    review += "Overall, you demonstrated strong interview skills and are well-prepared for real interview situations."
+  } else if (overallScore >= 5.5) {
+    review +=
+      "Overall, you show good interview potential with targeted improvements that can significantly enhance your performance."
+  } else {
+    review +=
+      "Overall, there are several areas that need attention, but with focused practice, you can significantly improve your interview performance."
+  }
+
+  return review
+}
+
+// Generate specific recommendations
+function generateRecommendations(avgFluency, avgAnswerRelevance, avgEmotion) {
+  const recommendations = []
+
+  if (avgFluency < 7) {
+    recommendations.push("Practice speaking English daily, focus on pronunciation and grammar exercises")
+    recommendations.push("Record yourself speaking and identify areas for improvement")
+  }
+
+  if (avgAnswerRelevance < 7) {
+    recommendations.push("Practice the STAR method (Situation, Task, Action, Result) for structured responses")
+    recommendations.push("Prepare specific examples for common interview questions")
+  }
+
+  if (avgEmotion < 6) {
+    recommendations.push("Practice relaxation and breathing techniques before interviews")
+    recommendations.push("Conduct mock interviews to build confidence")
+    recommendations.push("Work on maintaining eye contact and positive body language")
+  }
+
+  if (recommendations.length === 0) {
+    recommendations.push("Continue practicing to maintain your excellent performance")
+    recommendations.push("Focus on advanced interview techniques and industry-specific questions")
+  }
+
+  return recommendations.map((rec) => `<div class="recommendation-item">• ${rec}</div>`).join("")
 }
 
 // Utility functions
