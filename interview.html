@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Practice - AI Interview Coach</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+</head>
+<body>
+    <div class="interview-container">
+        <div class="interview-header">
+            <a href="index.html" class="back-btn">← Back</a>
+            <div class="interview-title">
+                <h1 id="interviewTitle">Interview Practice</h1>
+                <p id="interviewSubtitle">Question 1 of 8</p>
+            </div>
+            <div></div>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill"></div>
+        </div>
+
+        <div class="interview-main">
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="videoElement" autoplay muted></video>
+                    <div class="emotion-overlay">😐 Neutral</div>
+                </div>
+                
+                <div class="timer">
+                    <div class="timer-display" id="timerDisplay">00:00</div>
+                    <div class="timer-label">Recording Time</div>
+                </div>
+            </div>
+
+            <div class="question-section">
+                <div class="question-card">
+                    <div class="question-number" id="questionNumber">Question 1</div>
+                    <div class="question-text" id="questionText">Loading question...</div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn" id="recordBtn" onclick="isRecording ? stopRecording() : startRecording()">
+                        🎤 Start Recording
+                    </button>
+                    <button class="control-btn secondary-btn" onclick="skipQuestion()">
+                        ⏭️ Skip Question
+                    </button>
+                </div>
+
+                <div class="instructions">
+                    <h3>Instructions:</h3>
+                    <ul>
+                        <li>Click "Start Recording" to begin your answer</li>
+                        <li>Speak clearly and naturally</li>
+                        <li>Your camera will analyze your confidence level</li>
+                        <li>Click "Stop Recording" when finished</li>
+                        <li>You cannot see your transcript - focus on speaking</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

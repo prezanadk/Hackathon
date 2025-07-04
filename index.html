@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interview Coach</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <h1>🎯 AI Interview Coach</h1>
+                <p>Master your interviews with AI-powered feedback</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="hero-section">
+                <h2>Choose Your Interview Type</h2>
+                <p>Practice with real-time AI feedback on your speaking, fluency, and body language</p>
+            </div>
+
+            <div class="interview-types">
+                <div class="interview-card" onclick="navigateToInterview('ielts')">
+                    <div class="card-icon">🎓</div>
+                    <h3>IELTS Speaking</h3>
+                    <p>Practice IELTS speaking test with AI evaluation</p>
+                    <div class="card-features">
+                        <span>• Fluency Analysis</span>
+                        <span>• Pronunciation Check</span>
+                        <span>• Body Language</span>
+                    </div>
+                </div>
+
+                <div class="interview-card" onclick="navigateToInterview('visa')">
+                    <div class="card-icon">🛂</div>
+                    <h3>Visa Interview</h3>
+                    <p>Prepare for visa interviews with confidence</p>
+                    <div class="card-features">
+                        <span>• Answer Quality</span>
+                        <span>• Confidence Level</span>
+                        <span>• Communication Skills</span>
+                    </div>
+                </div>
+
+                <div class="interview-card" onclick="navigateToInterview('job')">
+                    <div class="card-icon">💼</div>
+                    <h3>Job Interview</h3>
+                    <p>Ace your job interviews with AI coaching</p>
+                    <div class="card-features">
+                        <span>• Professional Presence</span>
+                        <span>• Answer Structure</span>
+                        <span>• Nervousness Detection</span>
+                    </div>
+                </div>
+
+                <div class="interview-card" onclick="navigateToInterview('basic')">
+                    <div class="card-icon">🗣️</div>
+                    <h3>Basic English</h3>
+                    <p>Improve your basic English speaking skills</p>
+                    <div class="card-features">
+                        <span>• Grammar Check</span>
+                        <span>• Vocabulary Usage</span>
+                        <span>• Speaking Confidence</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="features-section">
+                <h3>Why Choose AI Interview Coach?</h3>
+                <div class="features-grid">
+                    <div class="feature">
+                        <div class="feature-icon">🤖</div>
+                        <h4>AI-Powered Analysis</h4>
+                        <p>Advanced AI evaluates your responses in real-time</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">📹</div>
+                        <h4>Body Language Detection</h4>
+                        <p>TensorFlow.js analyzes your facial expressions and confidence</p>
+                    </div>
+                    <div class="feature">
+                        <div class="feature-icon">🎯</div>
+                        <h4>Personalized Feedback</h4>
+                        <p>Get detailed feedback on fluency, grammar, and answers</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
