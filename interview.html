@@ -42,6 +42,18 @@
                     <div class="question-text" id="questionText">Loading question...</div>
                 </div>
 
+                <!-- Transcript display -->
+                <div id="transcriptDisplay" style="display:none; margin: 15px 0; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 12px; color: #222;">
+                    <strong>Transcript:</strong>
+                    <span id="transcriptText"></span>
+                </div>
+
+                <!-- Live review cards display -->
+                <div id="liveReviewCards" style="display:none; margin-bottom: 20px;"></div>
+
+                <!-- Next Question button -->
+                <button id="nextQuestionBtn" class="control-btn secondary-btn" style="display:none; margin-bottom: 20px;">Next Question</button>
+
                 <div class="controls">
                     <button class="control-btn" id="recordBtn" onclick="isRecording ? stopRecording() : startRecording()">
                         🎤 Start Recording

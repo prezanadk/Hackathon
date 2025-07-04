@@ -1,5 +1,4 @@
 // Configuration
-const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE" // Replace with your actual API key
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
 
 // Global variables
@@ -149,87 +148,97 @@ function setupSpeechRecognition() {
   }
 }
 
-// Gemini API functions
-async function generateQuestion(interviewType, questionNumber) {
-  const prompts = {
-    ielts: `Generate an IELTS speaking test question ${questionNumber} of 8. Make it appropriate for Part ${questionNumber <= 3 ? "1" : questionNumber <= 5 ? "2" : "3"}. Return only the question text, no additional formatting.`,
-    visa: `Generate a visa interview question ${questionNumber} of 8. Focus on common visa interview topics like purpose of visit, ties to home country, financial situation, etc. Return only the question text.`,
-    job: `Generate a job interview question ${questionNumber} of 8. Include a mix of behavioral, technical, and situational questions. Return only the question text.`,
-    basic: `Generate a basic English conversation question ${questionNumber} of 8. Focus on everyday topics suitable for English learners. Return only the question text.`,
-  }
+// At the top, add a helper to get URL params
+function getUrlParam(name) {
+  const urlParams = new URLSearchParams(window.location.search)
+  return urlParams.get(name)
+}
 
-  try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompts[interviewType],
-              },
-            ],
-          },
-        ],
-      }),
-    })
-
-    const data = await response.json()
-    return data.candidates[0].content.parts[0].text.trim()
-  } catch (error) {
-    console.error("Error generating question:", error)
-    return getFallbackQuestion(interviewType, questionNumber)
+// Gemini API key rotation
+const GEMINI_API_KEYS = [
+  "AIzaSyASor9wJJNit9398pdV7uQx1OsGVEJmjbQ",
+  "AIzaSyAZiybTQ2ATL9RmBOkfXI38ZCO2Mw91aVY",
+  "AIzaSyA6YcuWmWHROvPywO3xIa5KuT3GG9uYj-4",
+  "AIzaSyC2K7HJURnYtvGV0sgQ4M3Irut9_q17FJY",
+  "AIzaSyCQL-kh6FQT0ZFHa_wln8lcq-DS2M3ZfcQ",
+  "AIzaSyCzXCQm-uDLLD6HhS3e-advHkRQ-SPAFdY",
+  "AIzaSyAYCOBodpb2F8fkU67Lf1b5CSFEN6d5840",
+  "AIzaSyB6F4py-xkxNyv-AT82nxWd-xivZFtS3yo",
+  "AIzaSyAuLO3rUBQFLct5N7UCvz8TVSuEZk9H7mw",
+  "AIzaSyCXrlZOPemU4A4Fy84Zr1MHuTH236A4rGA",
+  "AIzaSyASmXBh00rUdS-dOrNhhZXVdm_TYuLSZjk"
+];
+let currentApiKeyIndex = 0;
+function getCurrentApiKey() {
+  return GEMINI_API_KEYS[currentApiKeyIndex];
+}
+function rotateApiKey() {
+  currentApiKeyIndex++;
+  if (currentApiKeyIndex >= GEMINI_API_KEYS.length) {
+    showError('All Gemini API keys have reached their limit. Please add more keys or try again later.');
+    throw new Error('All Gemini API keys exhausted');
   }
 }
 
-function getFallbackQuestion(type, number) {
-  const fallbackQuestions = {
-    ielts: [
-      "Tell me about your hometown.",
-      "What do you like to do in your free time?",
-      "Describe a memorable experience from your childhood.",
-      "What are your plans for the future?",
-      "How has technology changed the way people communicate?",
-      "What role does education play in society?",
-      "Discuss the importance of environmental protection.",
-      "How do you think cities will change in the future?",
-    ],
-    visa: [
-      "What is the purpose of your visit?",
-      "How long do you plan to stay?",
-      "What ties do you have to your home country?",
-      "How will you finance your trip?",
-      "Have you visited this country before?",
-      "What do you plan to do during your visit?",
-      "Do you have family or friends in the destination country?",
-      "What is your occupation and how long have you been working there?",
-    ],
-    job: [
-      "Tell me about yourself.",
-      "Why are you interested in this position?",
-      "What are your greatest strengths?",
-      "Describe a challenging situation you faced at work.",
-      "Where do you see yourself in five years?",
-      "Why should we hire you?",
-      "What motivates you?",
-      "Do you have any questions for us?",
-    ],
-    basic: [
-      "What is your favorite food and why?",
-      "Describe your daily routine.",
-      "What do you like about your city?",
-      "Tell me about your family.",
-      "What are your hobbies?",
-      "Describe your best friend.",
-      "What did you do last weekend?",
-      "What are your plans for next year?",
-    ],
+// Gemini API functions
+async function generateQuestion(interviewType, questionNumber) {
+  let prompt;
+  if (interviewType === 'ielts') {
+    prompt = `Generate an IELTS speaking test question ${questionNumber} of 8. Make it appropriate for Part ${questionNumber <= 3 ? "1" : questionNumber <= 5 ? "2" : "3"}. Return only the question text, no additional formatting.`;
+  } else if (interviewType === 'visa-student') {
+    prompt = `Generate a student visa interview question ${questionNumber} of 8. Focus on topics like study plans, university choice, funding, ties to home country, and future goals. Return only the question text, no additional formatting.`;
+  } else if (interviewType === 'visa-work') {
+    prompt = `Generate a work visa interview question ${questionNumber} of 8. Focus on topics like job offer, work experience, skills, employer, and plans in the destination country. Return only the question text, no additional formatting.`;
+  } else if (interviewType === 'job') {
+    const jobTitle = getUrlParam('jobTitle') || 'Software Engineer';
+    prompt = `Generate a job interview question ${questionNumber} of 8 for the position of ${jobTitle}. Include a mix of behavioral, technical, and situational questions relevant to this job. Return only the question text.`;
+  } else if (interviewType === 'basic') {
+    prompt = `Generate a basic English conversation question ${questionNumber} of 8. Focus on everyday topics suitable for English learners. Return only the question text.`;
+  } else {
+    showError('Unknown interview type.');
+    throw new Error('Unknown interview type');
   }
 
-  return fallbackQuestions[type][number - 1] || "Tell me about yourself."
+  let lastError;
+  for (let attempt = 0; attempt < GEMINI_API_KEYS.length; attempt++) {
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${getCurrentApiKey()}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+      if (response.status === 429) {
+        rotateApiKey();
+        continue;
+      }
+      const data = await response.json();
+      let text = data.candidates[0]?.content?.parts[0]?.text?.trim();
+      if (!text) throw new Error('No AI question returned');
+      if (text.startsWith('```')) {
+        text = text.replace(/```json|```/g, '').trim();
+      }
+      return text;
+    } catch (error) {
+      lastError = error;
+      if (error.message === 'All Gemini API keys exhausted') throw error;
+      // For other errors, try next key
+      rotateApiKey();
+    }
+  }
+  showError('AI question could not be generated. All API keys failed.');
+  throw lastError;
 }
 
 async function evaluateAnswer(question, userAnswer) {
@@ -254,39 +263,54 @@ async function evaluateAnswer(question, userAnswer) {
     Return only the JSON, no additional text.
     `
 
-  try {
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt,
-              },
-            ],
-          },
-        ],
-      }),
-    })
-
-    const data = await response.json()
-    const evaluation = JSON.parse(data.candidates[0].content.parts[0].text.trim())
-    return evaluation
-  } catch (error) {
-    console.error("Error evaluating answer:", error)
-    return {
-      fluencyScore: 6,
-      answerRelevanceScore: 6,
-      fluencyFeedback: "Good overall fluency with room for improvement in pronunciation and grammar.",
-      answerRelevanceFeedback:
-        "The answer addresses the question adequately but could benefit from more specific examples and better structure.",
-      overallFeedback: "A solid response with potential for enhancement in both delivery and content.",
+  let lastError;
+  for (let attempt = 0; attempt < GEMINI_API_KEYS.length; attempt++) {
+    try {
+      const response = await fetch(`${GEMINI_API_URL}?key=${getCurrentApiKey()}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: prompt,
+                },
+              ],
+            },
+          ],
+        }),
+      });
+      if (response.status === 429) {
+        rotateApiKey();
+        continue;
+      }
+      const data = await response.json();
+      let text = data.candidates[0]?.content?.parts[0]?.text?.trim();
+      if (!text) throw new Error('No evaluation returned');
+      if (text.startsWith('```')) {
+        text = text.replace(/```json|```/g, '').trim();
+      }
+      const evaluation = JSON.parse(text);
+      return evaluation;
+    } catch (error) {
+      lastError = error;
+      if (error.message === 'All Gemini API keys exhausted') throw error;
+      // For other errors, try next key
+      rotateApiKey();
     }
   }
+  showError('Answer evaluation could not be completed. All API keys failed.');
+  return {
+    fluencyScore: 6,
+    answerRelevanceScore: 6,
+    fluencyFeedback: "Good overall fluency with room for improvement in pronunciation and grammar.",
+    answerRelevanceFeedback:
+      "The answer addresses the question adequately but could benefit from more specific examples and better structure.",
+    overallFeedback: "A solid response with potential for enhancement in both delivery and content.",
+  };
 }
 
 // Interview flow functions
@@ -303,6 +327,21 @@ function displayQuestion(question, number) {
   document.getElementById("questionText").textContent = question
   updateProgress(number)
   updateInterviewTitle()
+  // Hide transcript and review cards when new question is shown
+  const transcriptDiv = document.getElementById("transcriptDisplay")
+  if (transcriptDiv) transcriptDiv.style.display = "none"
+  const transcriptText = document.getElementById("transcriptText")
+  if (transcriptText) transcriptText.textContent = ""
+  const reviewDiv = document.getElementById("liveReviewCards")
+  if (reviewDiv) {
+    reviewDiv.style.display = "none"
+    reviewDiv.innerHTML = ""
+  }
+  // Hide Next Question button
+  const nextBtn = document.getElementById("nextQuestionBtn")
+  if (nextBtn) nextBtn.style.display = "none"
+  // Speak the question
+  speakText(question)
 }
 
 function updateProgress(questionNumber) {
@@ -319,7 +358,13 @@ async function startRecording() {
   isRecording = true
   const recordBtn = document.getElementById("recordBtn")
   recordBtn.classList.add("recording")
-  recordBtn.innerHTML = "🛑 Stop Recording"
+  recordBtn.innerHTML = "�� Stop Recording"
+
+  // Hide transcript when starting new recording
+  const transcriptDiv = document.getElementById("transcriptDisplay")
+  if (transcriptDiv) transcriptDiv.style.display = "none"
+  const transcriptText = document.getElementById("transcriptText")
+  if (transcriptText) transcriptText.textContent = ""
 
   recognition.start()
   startTimer()
@@ -360,11 +405,61 @@ function stopTimer() {
 async function handleUserAnswer(transcript) {
   showLoading(true)
 
+  // Show transcript to user
+  const transcriptDiv = document.getElementById("transcriptDisplay")
+  const transcriptText = document.getElementById("transcriptText")
+  if (transcriptDiv && transcriptText) {
+    transcriptDiv.style.display = "block"
+    transcriptText.textContent = transcript
+  }
+
   const currentQuestion = questions[currentQuestionIndex]
   const evaluation = await evaluateAnswer(currentQuestion, transcript)
 
   // Get emotion score for this specific answer
   const emotionScore = getEmotionScoreForAnswer(currentEmotion)
+
+  // Show live review cards
+  const reviewDiv = document.getElementById("liveReviewCards")
+  if (reviewDiv) {
+    reviewDiv.style.display = "flex"
+    reviewDiv.innerHTML = `
+      <div style="display: flex; gap: 18px; flex-wrap: wrap; justify-content: flex-start;">
+        <div style="background: #181818; border: 1px solid #333; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); padding: 16px 18px; min-width: 200px; flex: 1 1 200px; color: #fff;">
+          <div style='font-weight:600; color:#7faaff; margin-bottom:6px;'>Fluency</div>
+          <div style='font-size:1.2em; font-weight:500; margin-bottom:6px; color:#fff;'>${evaluation.fluencyScore}/10</div>
+          <div style='color:#fff; font-size:0.97em;'>${evaluation.fluencyFeedback}</div>
+        </div>
+        <div style="background: #181818; border: 1px solid #333; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); padding: 16px 18px; min-width: 200px; flex: 1 1 200px; color: #fff;">
+          <div style='font-weight:600; color:#b47aff; margin-bottom:6px;'>Relevance</div>
+          <div style='font-size:1.2em; font-weight:500; margin-bottom:6px; color:#fff;'>${evaluation.answerRelevanceScore}/10</div>
+          <div style='color:#fff; font-size:0.97em;'>${evaluation.answerRelevanceFeedback}</div>
+        </div>
+        <div style="background: #181818; border: 1px solid #333; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.18); padding: 16px 18px; min-width: 200px; flex: 1 1 200px; color: #fff;">
+          <div style='font-weight:600; color:#ffd966; margin-bottom:6px;'>Confidence</div>
+          <div style='font-size:1.2em; font-weight:500; margin-bottom:6px; color:#fff;'>${emotionScore}/10 <span style='font-size:1.2em; margin-left:6px;'>${emotionToEmoji(currentEmotion)}</span></div>
+          <div style='color:#fff; font-size:0.97em;'>${getEmotionDetailedFeedback(currentEmotion, emotionScore)}</div>
+        </div>
+      </div>
+    `
+  }
+
+  // Speak the feedbacks (fluency, relevance, confidence)
+  const feedbackText =
+    `Fluency: ${evaluation.fluencyFeedback}. ` +
+    `Relevance: ${evaluation.answerRelevanceFeedback}. ` +
+    `Confidence: ${getEmotionDetailedFeedback(currentEmotion, emotionScore)}.`;
+  speakText(feedbackText);
+
+  // Show Next Question button
+  const nextBtn = document.getElementById("nextQuestionBtn")
+  if (nextBtn) {
+    nextBtn.style.display = "block"
+    nextBtn.onclick = () => {
+      nextBtn.style.display = "none"
+      goToNextQuestion()
+    }
+  }
 
   userAnswers.push({
     question: currentQuestion,
@@ -376,18 +471,25 @@ async function handleUserAnswer(transcript) {
     questionNumber: currentQuestionIndex + 1,
   })
 
-  currentQuestionIndex++
+  showLoading(false)
+}
 
+function goToNextQuestion() {
+  currentQuestionIndex++
   if (currentQuestionIndex < 8) {
-    const nextQuestion = await generateQuestion(currentInterviewType, currentQuestionIndex + 1)
-    questions.push(nextQuestion)
-    displayQuestion(nextQuestion, currentQuestionIndex + 1)
+    const nextQuestion = questions.length > currentQuestionIndex ? questions[currentQuestionIndex] : null
+    if (nextQuestion) {
+      displayQuestion(nextQuestion, currentQuestionIndex + 1)
+    } else {
+      // If not pre-generated, generate a new one
+      generateQuestion(currentInterviewType, currentQuestionIndex + 1).then(q => {
+        questions.push(q)
+        displayQuestion(q, currentQuestionIndex + 1)
+      })
+    }
   } else {
-    // Interview completed
     goToResults()
   }
-
-  showLoading(false)
 }
 
 // Add function to convert emotion to numerical score
@@ -733,6 +835,24 @@ function showError(message) {
 
 function getEmotionSummary() {
   return userAnswers.map((answer) => answer.emotion)
+}
+
+function emotionToEmoji(emotion) {
+  const emotionEmojis = {
+    confident: "😊",
+    nervous: "😰",
+    neutral: "😐",
+    focused: "🤔",
+    anxious: "😟",
+  }
+  return emotionEmojis[emotion] || "😐"
+}
+
+// TTS helper: speak text using meSpeak.js
+function speakText(text) {
+  if (typeof meSpeak !== 'undefined') {
+    meSpeak.speak(text, { amplitude: 100, wordgap: 0, pitch: 50, speed: 175 });
+  }
 }
 
 // Event listeners

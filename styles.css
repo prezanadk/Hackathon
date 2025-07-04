@@ -743,6 +743,20 @@ body {
   margin-bottom: 0;
 }
 
+.interview-types-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 32px;
+  margin: 40px 0 50px 0;
+}
+
+@media (max-width: 900px) {
+  .interview-types-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
 @media (max-width: 768px) {
   .interview-main {
     grid-template-columns: 1fr;

@@ -22,7 +22,7 @@
                 <p>Practice with real-time AI feedback on your speaking, fluency, and body language</p>
             </div>
 
-            <div class="interview-types">
+            <div class="interview-types-grid">
                 <div class="interview-card" onclick="navigateToInterview('ielts')">
                     <div class="card-icon">🎓</div>
                     <h3>IELTS Speaking</h3>
@@ -34,7 +34,7 @@
                     </div>
                 </div>
 
-                <div class="interview-card" onclick="navigateToInterview('visa')">
+                <div class="interview-card" id="visaCard">
                     <div class="card-icon">🛂</div>
                     <h3>Visa Interview</h3>
                     <p>Prepare for visa interviews with confidence</p>
@@ -45,7 +45,7 @@
                     </div>
                 </div>
 
-                <div class="interview-card" onclick="navigateToInterview('job')">
+                <div class="interview-card" id="jobCard">
                     <div class="card-icon">💼</div>
                     <h3>Job Interview</h3>
                     <p>Ace your job interviews with AI coaching</p>
@@ -91,6 +91,54 @@
         </main>
     </div>
 
+    <div id="visaModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:#181818; color:#fff; border-radius:18px; padding:36px 32px; min-width:300px; max-width:90vw; box-shadow:0 4px 24px rgba(0,0,0,0.18); text-align:center;">
+            <h2 style="margin-bottom:24px;">Choose Visa Interview Type</h2>
+            <button onclick="navigateToInterview('visa-student')" style="margin: 0 12px 0 0; padding: 12px 28px; border-radius:8px; border:none; background:#667eea; color:#fff; font-size:1.1em; font-weight:600; cursor:pointer;">Student Visa</button>
+            <button onclick="navigateToInterview('visa-work')" style="margin: 0 0 0 12px; padding: 12px 28px; border-radius:8px; border:none; background:#764ba2; color:#fff; font-size:1.1em; font-weight:600; cursor:pointer;">Work Visa</button>
+            <div style="margin-top:24px;"><button onclick="closeVisaModal()" style="background:none; border:none; color:#aaa; font-size:1em; cursor:pointer;">Cancel</button></div>
+        </div>
+    </div>
+
+    <div id="jobModal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:#181818; color:#fff; border-radius:18px; padding:36px 32px; min-width:320px; max-width:90vw; box-shadow:0 4px 24px rgba(0,0,0,0.18); text-align:center;">
+            <h2 style="margin-bottom:18px;">Enter Job Title</h2>
+            <input id="jobTitleInput" type="text" placeholder="e.g. Software Engineer" style="width:90%; padding:12px; border-radius:8px; border:1px solid #333; margin-bottom:18px; font-size:1.1em; background:#222; color:#fff;">
+            <br>
+            <button onclick="startJobInterview()" style="margin: 0 12px 0 0; padding: 12px 28px; border-radius:8px; border:none; background:#667eea; color:#fff; font-size:1.1em; font-weight:600; cursor:pointer;">Start</button>
+            <button onclick="closeJobModal()" style="margin: 0 0 0 12px; padding: 12px 28px; border-radius:8px; border:none; background:#aaa; color:#222; font-size:1.1em; font-weight:600; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/gh/kripken/meSpeak.js/mespeak.js"></script>
+    <script>
+      meSpeak.loadConfig("https://cdn.jsdelivr.net/gh/kripken/meSpeak.js/mespeak_config.json");
+      meSpeak.loadVoice("https://cdn.jsdelivr.net/gh/kripken/meSpeak.js/voices/en/en.json");
+    </script>
     <script src="script.js"></script>
+    <script>
+document.getElementById('visaCard').onclick = function() {
+  document.getElementById('visaModal').style.display = 'flex';
+}
+function closeVisaModal() {
+  document.getElementById('visaModal').style.display = 'none';
+}
+document.getElementById('jobCard').onclick = function() {
+  document.getElementById('jobModal').style.display = 'flex';
+  document.getElementById('jobTitleInput').focus();
+}
+function closeJobModal() {
+  document.getElementById('jobModal').style.display = 'none';
+}
+function startJobInterview() {
+  var jobTitle = document.getElementById('jobTitleInput').value.trim();
+  if (!jobTitle) {
+    document.getElementById('jobTitleInput').focus();
+    return;
+  }
+  // Pass job title as query param
+  window.location.href = 'interview.html?type=job&jobTitle=' + encodeURIComponent(jobTitle);
+}
+</script>
 </body>
 </html>
